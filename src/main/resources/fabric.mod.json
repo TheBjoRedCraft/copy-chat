@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "copy-chat",
+  "version": "${version}",
+  "name": "copy-chat",
+  "description": "Select chat text with Shift + mouse drag and copy it with Ctrl+C.",
+  "authors": [],
+  "contact": {},
+  "license": "GPL-3.0",
+  "icon": "assets/copy-chat/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "dev.thebjoredcraft.copyChat.client.CopyChatDataGenerator"
+    ],
+    "client": [
+      "dev.thebjoredcraft.copyChat.client.CopyChatClient"
+    ],
+    "main": [
+      "dev.thebjoredcraft.copyChat.CopyChat"
+    ]
+  },
+  "mixins": [
+    "copy-chat.mixins.json",
+    {
+      "config": "copy-chat.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

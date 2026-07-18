@@ -3,7 +3,7 @@
   "id": "copy-chat",
   "version": "${version}",
   "name": "copy-chat",
-  "description": "Select chat text with Shift + mouse drag and copy it with Ctrl+C.",
+  "description": "Select chat text by holding the right mouse button and dragging, then copy it with Ctrl+C.",
   "authors": [],
   "contact": {},
   "license": "GPL-3.0",

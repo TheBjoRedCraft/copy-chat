@@ -13,13 +13,13 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
- * Holds the current chat text selection (shift + mouse drag) and implements
- * hit-testing, highlight rendering and clipboard copy on top of the vanilla
- * chat geometry from [ChatComponent.extractRenderState].
+ * Holds the current chat text selection (hold right mouse button and drag) and
+ * implements hit-testing, highlight rendering and clipboard copy on top of the
+ * vanilla chat geometry from [ChatComponent.extractRenderState].
  */
 object ChatSelection {
-    private const val HIGHLIGHT_COLOR = 0x8033A0FF.toInt()
-    private const val LEFT_BUTTON = 0
+    private const val HIGHLIGHT_COLOR = 0x80FFFFFF.toInt()
+    private const val RIGHT_BUTTON = 1
 
     /** A caret between two characters of one visible chat line. */
     data class Caret(val line: GuiMessage.Line, val charIndex: Int)
@@ -37,11 +37,7 @@ object ChatSelection {
     // ---------------------------------------------------------------- input
 
     fun handleMouseClicked(event: MouseButtonEvent): Boolean {
-        if (event.button() != LEFT_BUTTON) return false
-        if (!event.hasShiftDown()) {
-            clear()
-            return false
-        }
+        if (event.button() != RIGHT_BUTTON) return false
 
         val caret = caretAt(event.x(), event.y(), clampToChat = false)
         if (caret == null) {
@@ -56,13 +52,13 @@ object ChatSelection {
     }
 
     fun handleMouseDragged(event: MouseButtonEvent): Boolean {
-        if (!dragging || event.button() != LEFT_BUTTON) return false
+        if (!dragging || event.button() != RIGHT_BUTTON) return false
         caretAt(event.x(), event.y(), clampToChat = true)?.let { focus = it }
         return true
     }
 
     fun handleMouseReleased(event: MouseButtonEvent): Boolean {
-        if (!dragging || event.button() != LEFT_BUTTON) return false
+        if (!dragging || event.button() != RIGHT_BUTTON) return false
         dragging = false
         return true
     }

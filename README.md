@@ -1,4 +1,4 @@
-## Copy Chat Fabric Mod [1.21.11+]
+## Copy Chat Fabric Mod [1.21.11-26.3]
 Note: Most of this mod is AI generated and mostly for private usage.
 
 

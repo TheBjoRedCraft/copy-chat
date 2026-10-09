@@ -3,11 +3,17 @@ package dev.thebjoredcraft.copyChat.client.selection
 import dev.thebjoredcraft.copyChat.mixin.client.ChatComponentAccessor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
+//? if >=26.1 {
 import net.minecraft.client.gui.GuiGraphicsExtractor
+//?} else
+//import net.minecraft.client.gui.GuiGraphics as GuiGraphicsExtractor
 import net.minecraft.client.gui.components.ChatComponent
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
+//? if >=26.1 {
 import net.minecraft.client.multiplayer.chat.GuiMessage
+//?} else
+//import net.minecraft.client.GuiMessage
 import net.minecraft.util.FormattedCharSequence
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -110,7 +116,7 @@ object ChatSelection {
 
     private fun caretAt(guiX: Double, guiY: Double, clampToChat: Boolean): Caret? {
         val minecraft = Minecraft.getInstance()
-        val chat = minecraft.gui.hud.chat
+        val chat = chatComponent(minecraft)
         if (!chat.isChatFocused) return null
 
         val geometry = ChatGeometry(minecraft, chat)
@@ -133,6 +139,12 @@ object ChatSelection {
 
         return Caret(line, charIndexAtX(minecraft.font, line.content(), localX.toFloat()))
     }
+
+    private fun chatComponent(minecraft: Minecraft): ChatComponent =
+        //? if >=26.2 {
+        minecraft.gui.hud.chat
+        //?} else
+        //minecraft.gui.chat
 
     // ------------------------------------------------------------ selection
 
@@ -166,7 +178,7 @@ object ChatSelection {
     }
 
     private fun selectedText(): String? {
-        val chat = Minecraft.getInstance().gui.hud.chat
+        val chat = chatComponent(Minecraft.getInstance())
         val range = resolve(chat) ?: return null
         val lines = (chat as ChatComponentAccessor).copychatTrimmedMessages()
 

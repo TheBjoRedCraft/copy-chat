@@ -1,22 +1,31 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+// This script is applied to every Minecraft version listed in settings.gradle.kts.
+// `sc.current` is the version being built; per-version values come from stonecutter.properties.toml.
 plugins {
-    kotlin("jvm") version "2.4.21"
-    id("fabric-loom") version "1.18.3"
+    // Applies the correct loom variant: remapping for <= 1.21.11, plain loom for 26.1+
+    id("dev.kikugie.loom-back-compat")
+    kotlin("jvm")
     id("maven-publish")
 }
 
-version = project.property("mod_version") as String
-group = project.property("maven_group") as String
+version = "${sc.properties.get<String>("mod.version")}+${sc.current.version}"
+group = sc.properties.get<String>("mod.group")
 
 base {
-    archivesName.set(project.property("archives_base_name") as String)
+    archivesName.set(sc.properties.get<String>("mod.id"))
 }
 
-val targetJavaVersion = 25
+val requiredJava: JavaVersion = when {
+    sc.current.parsed >= "26.1" -> JavaVersion.VERSION_25
+    else -> JavaVersion.VERSION_21
+}
+
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    toolchain.languageVersion = JavaLanguageVersion.of(requiredJava.majorVersion)
+    sourceCompatibility = requiredJava
+    targetCompatibility = requiredJava
     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
     // if it is present.
     // If you remove this line, sources will not be generated.
@@ -32,6 +41,11 @@ loom {
             sourceSet("client")
         }
     }
+
+    runConfigs.all {
+        // Shares the run directory between versions
+        runDirectory = rootProject.file("run")
+    }
 }
 
 fabricApi {
@@ -40,39 +54,31 @@ fabricApi {
     }
 }
 
-repositories {
-    // Add repositories to retrieve artifacts from in here.
-    // You should only use this when depending on other mods because
-    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-    // for more information about repositories.
-}
-
 dependencies {
-    // To change the versions see the gradle.properties file
-    minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
-    // Minecraft 26.1+ ships unobfuscated, so there are no mappings to apply;
-    // obfuscation/remapping is disabled via fabric.loom.disableObfuscation in gradle.properties.
-    implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
-    implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
+    minecraft("com.mojang:minecraft:${sc.current.version}")
+    // Applies Mojang mappings on obfuscated versions; no-op on 26.1+ (shipped unobfuscated).
+    loomx.applyMojangMappings()
 
-    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    // `mod*` configurations also work on 26.1+, loom-back-compat maps them to the plain ones.
+    modImplementation("net.fabricmc:fabric-loader:${sc.properties.get<String>("deps.fabric_loader")}")
+    modImplementation("net.fabricmc:fabric-language-kotlin:${sc.properties.get<String>("deps.fabric_kotlin")}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${sc.properties.get<String>("deps.fabric_api")}")
 }
 
-tasks.processResources {
-    inputs.property("version", project.version)
-    inputs.property("minecraft_version", project.property("minecraft_version"))
-    inputs.property("loader_version", project.property("loader_version"))
+tasks.withType<ProcessResources>().configureEach {
+    val props = mapOf(
+        "version" to project.version.toString(),
+        "minecraft_version" to sc.properties.get<String>("mod.mc_compat"),
+        "loader_version" to sc.properties.get<String>("deps.fabric_loader"),
+        "kotlin_loader_version" to sc.properties.get<String>("deps.fabric_kotlin"),
+    )
+    val mixinJava = "JAVA_${requiredJava.majorVersion}"
+    inputs.properties(props)
+    inputs.property("mixin_java", mixinJava)
     filteringCharset = "UTF-8"
 
-    filesMatching("fabric.mod.json") {
-        expand(
-            "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version") as String,
-            "loader_version" to project.property("loader_version") as String,
-            "kotlin_loader_version" to project.property("kotlin_loader_version") as String
-        )
-    }
+    filesMatching("fabric.mod.json") { expand(props) }
+    filesMatching("*.mixins.json") { expand("java" to mixinJava) }
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -81,24 +87,33 @@ tasks.withType<JavaCompile>().configureEach {
     // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
     // If Javadoc is generated, this must be specified in that task too.
     options.encoding = "UTF-8"
-    options.release.set(targetJavaVersion)
+    options.release.set(requiredJava.majorVersion.toInt())
 }
 
 tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(targetJavaVersion.toString()))
+    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(requiredJava.majorVersion))
 }
 
-tasks.jar {
-    from("LICENSE") {
+tasks.withType<Jar>().configureEach {
+    from(rootProject.file("LICENSE")) {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
+}
+
+tasks.register<Copy>("buildAndCollect") {
+    group = "build"
+    description = "Builds the mod jar and copies it to the root `build/libs/{mod version}/`"
+
+    // loomx.modJar is remapJar on obfuscated versions and jar on 26.1+
+    from(loomx.modJar.flatMap { it.archiveFile })
+    into(rootProject.layout.buildDirectory.dir("libs/${sc.properties.get<String>("mod.version")}"))
 }
 
 // configure the maven publication
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            artifactId = project.property("archives_base_name") as String
+            artifactId = sc.properties.get<String>("mod.id")
             from(components["java"])
         }
     }

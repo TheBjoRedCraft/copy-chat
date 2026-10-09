@@ -1,5 +1,6 @@
 package dev.thebjoredcraft.copyChat.client.selection
 
+import com.mojang.blaze3d.platform.InputConstants
 import dev.thebjoredcraft.copyChat.mixin.client.ChatComponentAccessor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
@@ -25,7 +26,8 @@ import kotlin.math.roundToInt
  */
 object ChatSelection {
     private const val HIGHLIGHT_COLOR = 0x80FFFFFF.toInt()
-    private const val RIGHT_BUTTON = 1
+    // Not hardcoded: the button numbering changed in 26.3 (right went from 1 to 3, left is now 1).
+    private const val RIGHT_BUTTON = InputConstants.MOUSE_BUTTON_RIGHT
 
     /** A caret between two characters of one visible chat line. */
     data class Caret(val line: GuiMessage.Line, val charIndex: Int)

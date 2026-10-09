@@ -3,7 +3,7 @@
 mod.id = "copy-chat"
 mod.name = "copy-chat"
 mod.group = "dev.thebjored"
-mod.version = "1.0.0-SNAPSHOT"
+mod.version = "1.0.1"
 
 # check these on https://fabricmc.net/develop
 deps.fabric_loader = "0.19.5"
